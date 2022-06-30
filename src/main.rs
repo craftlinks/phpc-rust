@@ -52,11 +52,6 @@ impl<T> IndexMut<usize> for Vec2D<T> {
     }
 }
 
-/// Simple wrapper to get the TSC
-fn rdtsc() -> u64 {
-    unsafe { std::arch::x86_64::_rdtsc() }
-}
-
 fn main() {
     println!("Hello, world!");
 
@@ -71,7 +66,6 @@ fn main() {
 
 
     // A simple benchmark:
-    // ToDo, Geert: benchmark against what? 
 
     // array dimensions
     const IMAX: usize = 2002;
@@ -95,13 +89,10 @@ fn main() {
     }
     
     let it = Instant::now();
-    let mut cycles_run = 0; // Cycles running
 
     // ITERATION
     for iter in 0..10000 {
-        
-        // let it = rdtsc();
-        
+               
         // Flushing the cache
         for el in &mut flush[..] {
             *el = 1;
@@ -114,20 +105,13 @@ fn main() {
             }
         }
 
-        // for j in JMAX / 2 - 5..JMAX / 2 + 5 {
-        //     for i in IMAX/2 - 5 .. IMAX/2 + 5 {
-        //         print!("{:.1} ", xnew[j][i]);
-        //     }
-        //     print!("\n")
-        // }
-
         let xtmp = x.ptr.clone();
         x.ptr = xnew.ptr;
         xnew.ptr = xtmp;
 
         // cycles_run += rdtsc() - it;
         
-        if iter % 100 == 0 {
+        if iter % 1000 == 0 {
             println!("Iter {iter}");
         }
 
