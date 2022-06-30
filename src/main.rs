@@ -98,9 +98,9 @@ fn main() {
     let mut cycles_run = 0; // Cycles running
 
     // ITERATION
-    for iter in 0..10_000 {
+    for iter in 0..10000 {
         
-        let it = rdtsc();
+        // let it = rdtsc();
         
         // Flushing the cache
         for el in &mut flush[..] {
@@ -114,19 +114,25 @@ fn main() {
             }
         }
 
+        // for j in JMAX / 2 - 5..JMAX / 2 + 5 {
+        //     for i in IMAX/2 - 5 .. IMAX/2 + 5 {
+        //         print!("{:.1} ", xnew[j][i]);
+        //     }
+        //     print!("\n")
+        // }
+
         let xtmp = x.ptr.clone();
         x.ptr = xnew.ptr;
         xnew.ptr = xtmp;
 
-        cycles_run += rdtsc() - it;
+        // cycles_run += rdtsc() - it;
         
         if iter % 100 == 0 {
-            println!("Iter {iter} - cycles run {cycles_run}");
+            println!("Iter {iter}");
         }
 
     }
 
-    println!("Total cycles: {cycles_run}");
     let final_time = it.elapsed().as_secs();
     println!("Total elapsed time (s): {final_time}"); 
 }
