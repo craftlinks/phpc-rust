@@ -1,7 +1,7 @@
 #![feature(allocator_api)]
 #![feature(ptr_internals)]
 #![feature(generic_associated_types)]
-use std::{alloc::{Allocator, Global, Layout}, ptr::Unique, ops::{Index, IndexMut}};
+use std::{alloc::{Allocator, Global, Layout}, ptr::Unique, ops::{Index, IndexMut}, time::Instant};
 
 pub struct Vec2D<T> {
     ptr: Unique<T>,
@@ -52,6 +52,11 @@ impl<T> IndexMut<usize> for Vec2D<T> {
     }
 }
 
+/// Simple wrapper to get the TSC
+fn rdtsc() -> u64 {
+    unsafe { std::arch::x86_64::_rdtsc() }
+}
+
 fn main() {
     println!("Hello, world!");
 
@@ -64,20 +69,71 @@ fn main() {
     println!("Mutated Vec2D: {val}");
     assert_eq!(val, 5.0);
 
-    // Todo, Geert: Implement a benchmark use case using Vec2D.
+
+    // A simple benchmark:
+    // ToDo, Geert: benchmark against what? 
+
+    // array dimensions
+    const IMAX: usize = 2002;
+    const JMAX: usize = 2002;
+    
+    // zero intialize 2D arrays
+    let mut x: Vec2D<f64> = Vec2D::new(JMAX, IMAX);
+    let mut xnew: Vec2D<f64> = Vec2D::new(JMAX, IMAX);
+    let mut flush = vec![0u32;JMAX * IMAX * 10];
+
+    // I assume I have to implement the RangeIndex trait to make this work
+    // for el in &x[JMAX/2-5..JMAX/2+5][IMAX/2 - 5..IMAX/2+5] {
+    //     el = 400.0;
+    // } ;
+
+    // set center block of memory to a larger value
+    for j in JMAX / 2 - 5..JMAX / 2 + 5 {
+        for i in IMAX/2 - 5 .. IMAX/2 + 5 {
+            x[j][i] = 400.0;
+        }
+    }
+    
+    let it = Instant::now();
+    let mut cycles_run = 0; // Cycles running
+
+    // ITERATION
+    for iter in 0..10_000 {
+        
+        let it = rdtsc();
+        
+        // Flushing the cache
+        for el in &mut flush[..] {
+            *el = 1;
+        }
+
+        for j in 1..JMAX-1 {
+            for i in 1 .. IMAX-1 {
+                // Calculation kernel
+                xnew[j][i] = ( x[j][i] + x[j][i-1] + x[j][i+1] + x[j-1][i] + x[j+1][i] ) / 5.0;
+            }
+        }
+
+        let xtmp = x.ptr.clone();
+        x.ptr = xnew.ptr;
+        xnew.ptr = xtmp;
+
+        cycles_run += rdtsc() - it;
+        
+        if iter % 100 == 0 {
+            println!("Iter {iter} - cycles run {cycles_run}");
+        }
+
+    }
+
+    println!("Total cycles: {cycles_run}");
+    let final_time = it.elapsed().as_secs();
+    println!("Total elapsed time (s): {final_time}"); 
 }
 
 
 // Rust optimization Guide:
 // https://gist.github.com/jFransham/369a86eff00e5f280ed25121454acec1.js
-
-// Take the size of each type and make...
-// Only when the total size is below the size of a cache line (64 bytes)
-// use padding to make it a divisor of the cache size
-// use the number of times tyhe struct fits within the cache size = V
-// this would benefit from a AoSoA layout.
-// Otherwise, an SoA or AoS could be chosen based on the performance benchmark.
-
 
 // Cache size and other CPU info crates:
 // https://docs.rs/cache-size/latest/cache_size/index.html#
